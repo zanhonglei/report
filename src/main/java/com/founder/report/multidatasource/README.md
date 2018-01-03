@@ -1,0 +1,21 @@
+##简要原理：
+
+1.DataSource列出所有的数据源的key—key
+
+2.DataSourceContextHolder是一个线程安全的DataSourceEnum容器，并提供了向其中设置和获取DataSourceEnum的方法
+
+3.DynamicDataSource继承AbstractRoutingDataSource并重写其中的方法determineCurrentLookupKey()，在该方法中使用DatabaseContextHolder获取当前线程的DatabaseType
+
+4.MyBatisConfig中生成2个数据源DataSource的bean—value
+
+5.MyBatisConfig中将1）和4）组成的key-value对写入到DynamicDataSource动态数据源的targetDataSources属性（当然，同时也会设置2个数据源其中的一个为DynamicDataSource的defaultTargetDataSource属性中）
+
+6.将DynamicDataSource作为primary数据源注入到SqlSessionFactory的dataSource属性中去，并且该dataSource作为transactionManager的入参来构造DataSourceTransactionManager
+
+7.使用的时候，在dao层或service层先使用DatabaseContextHolder设置将要使用的数据源key，然后再调用mapper层进行相应的操作，建议放在dao层去做（当然也可以使用spring aop+自定注解去做）
+
+8.定义了一个DataSource注解，用于说明方法执行时使用的数据源
+
+9.DataSourceAspect切面用于捕获DataSource注解的方法，根据DataSource注解内对应的值设置数据源
+
+注意：在mapper层进行操作的时候，会先调用determineCurrentLookupKey()方法获取一个数据源（获取数据源：先根据设置去targetDataSources中去找，若没有，则选择defaultTargetDataSource），之后在进行数据库操作。
